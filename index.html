@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LogicLab 邏輯閘練習</title>
+<meta name="description" content="在瀏覽器中繪製邏輯閘電路、即時模擬、產生真值表與時序圖，並完成與繳交數位邏輯作業。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23335B74'/%3E%3Cpath d='M16 16h14a16 16 0 0 1 0 32H16z' fill='none' stroke='%23fff' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M46 32h8M8 24h8M8 40h8' stroke='%23F76707' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#335B74"/><path d="M16 16h14a16 16 0 0 1 0 32H16z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M46 32h8M8 24h8M8 40h8" stroke="#F76707" stroke-width="5" stroke-linecap="round"/></svg>
+      <div class="brand-text">
+        <div class="brand-title">LogicLab <span>邏輯閘練習</span></div>
+        <div class="brand-sub" id="courseName"></div>
+      </div>
+    </div>
+    <div class="task-pick">
+      <label for="taskSelect" class="task-label">題目</label>
+      <select id="taskSelect"></select>
+    </div>
+    <div class="top-actions">
+      <button id="btnUndo" class="icon-btn" title="復原（Ctrl+Z）" aria-label="復原"><svg viewBox="0 0 24 24"><path d="M9 7H4V2M4.5 7.5A8.5 8.5 0 1 1 3.5 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="btnRedo" class="icon-btn" title="重做（Ctrl+Y）" aria-label="重做"><svg viewBox="0 0 24 24"><path d="M15 7h5V2M19.5 7.5A8.5 8.5 0 1 0 20.5 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="menu-wrap">
+        <button id="btnFile" class="btn" aria-haspopup="menu" aria-expanded="false">檔案 <span class="caret">▾</span></button>
+        <div class="menu" id="menuFile" role="menu" hidden>
+          <button role="menuitem" data-act="new">清除畫布／重新開始</button>
+          <button role="menuitem" data-act="open">開啟檔案…（電路檔或作業檔）</button>
+          <button role="menuitem" data-act="save">儲存電路檔（.json）</button>
+          <div class="menu-sep"></div>
+          <button role="menuitem" data-act="png">下載電路圖（PNG）</button>
+          <button role="menuitem" data-act="copyimg">複製電路圖（可貼到簡報）</button>
+        </div>
+      </div>
+      <div class="menu-wrap">
+        <button id="btnView" class="btn" aria-haspopup="menu" aria-expanded="false">檢視 <span class="caret">▾</span></button>
+        <div class="menu" id="menuView" role="menu" hidden>
+          <div class="menu-title">導線樣式</div>
+          <button role="menuitemradio" data-set="wire" data-val="ortho">直角導線</button>
+          <button role="menuitemradio" data-set="wire" data-val="curve">曲線導線</button>
+          <div class="menu-title">邏輯閘符號</div>
+          <button role="menuitemradio" data-set="symbol" data-val="ansi">傳統符號（ANSI／IEEE）</button>
+          <button role="menuitemradio" data-set="symbol" data-val="iec">矩形符號（IEC）</button>
+          <div class="menu-sep"></div>
+          <button role="menuitemcheckbox" data-set="captions">顯示閘的名稱</button>
+          <button role="menuitemcheckbox" data-set="badges">顯示各閘輸出值</button>
+          <div class="menu-title">外觀</div>
+          <button role="menuitemradio" data-set="theme" data-val="auto">跟隨系統</button>
+          <button role="menuitemradio" data-set="theme" data-val="light">淺色</button>
+          <button role="menuitemradio" data-set="theme" data-val="dark">深色</button>
+          <div class="menu-sep"></div>
+          <button role="menuitem" data-act="fit">全部顯示（置中）</button>
+        </div>
+      </div>
+      <button id="btnHelp" class="btn">說明</button>
+      <button id="btnTeacher" class="btn btn-quiet">教師專區</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="palette" id="palette" aria-label="元件"></aside>
+
+    <section class="board-wrap" id="boardWrap">
+      <svg id="board" xmlns="http://www.w3.org/2000/svg" aria-label="電路畫布">
+        <defs>
+          <pattern id="gridDots" width="20" height="20" patternUnits="userSpaceOnUse" x="-1.2" y="-1.2">
+            <circle cx="1.2" cy="1.2" r="1.2" class="grid-dot"/>
+          </pattern>
+        </defs>
+        <g id="viewport">
+          <rect id="gridBg" fill="url(#gridDots)"/>
+          <g id="layerWires"></g>
+          <g id="layerComps"></g>
+          <g id="layerOverlay"></g>
+        </g>
+      </svg>
+      <div class="board-banner" id="boardBanner" hidden></div>
+      <div class="seltools" id="selTools" hidden></div>
+      <div class="board-empty" id="boardEmpty" hidden>
+        <div class="empty-card">
+          <div class="empty-title">從左側把元件拖曳到這裡</div>
+          <ol>
+            <li>拖曳（或點一下）左側的<b>輸入</b>、<b>邏輯閘</b>、<b>輸出</b></li>
+            <li>從元件<b>右側的小圓點</b>拖曳到另一個元件<b>左側的輸入端</b>即可連線</li>
+            <li>點一下<b>輸入開關</b>切換 0／1，右側會即時產生真值表</li>
+          </ol>
+        </div>
+      </div>
+      <div class="statusbar" id="statusBar"></div>
+      <div class="zoom" id="zoomCtl">
+        <button data-zoom="out" title="縮小" aria-label="縮小">−</button>
+        <button data-zoom="reset" id="zoomLabel" title="回到 100%">100%</button>
+        <button data-zoom="in" title="放大" aria-label="放大">＋</button>
+        <button data-zoom="fit" title="全部顯示" aria-label="全部顯示"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </section>
+
+    <aside class="panel" id="panel" aria-label="題目與結果">
+      <div class="panel-grip" id="panelGrip"></div>
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-task" data-tab="task" aria-selected="true">題目</button>
+        <button role="tab" id="tab-table" data-tab="table" aria-selected="false">真值表</button>
+        <button role="tab" id="tab-timing" data-tab="timing" aria-selected="false">時序圖</button>
+        <button role="tab" id="tab-submit" data-tab="submit" aria-selected="false">繳交</button>
+      </div>
+      <div class="tabpanes">
+        <section class="pane" id="pane-task" role="tabpanel" aria-labelledby="tab-task"></section>
+        <section class="pane" id="pane-table" role="tabpanel" aria-labelledby="tab-table" hidden></section>
+        <section class="pane" id="pane-timing" role="tabpanel" aria-labelledby="tab-timing" hidden></section>
+        <section class="pane" id="pane-submit" role="tabpanel" aria-labelledby="tab-submit" hidden>
+          <h2 class="pane-title">繳交作業</h2>
+          <div id="submitStatus" class="submit-status"></div>
+          <div class="form-grid">
+            <label for="stuId">學號</label>
+            <input id="stuId" autocomplete="off" maxlength="20" placeholder="例如 11312345">
+            <label for="stuName">姓名</label>
+            <input id="stuName" autocomplete="off" maxlength="20" placeholder="例如 王小明">
+          </div>
+          <p class="form-err" id="stuErr" hidden></p>
+          <div class="submit-actions">
+            <button class="btn btn-primary" id="btnSubFile">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              下載作業檔（.json）
+            </button>
+            <button class="btn" id="btnSubCode">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              複製繳交代碼
+            </button>
+            <button class="btn" id="btnSubPng">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m3 16 5-5 4 4 3-3 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              下載電路圖（PNG）
+            </button>
+          </div>
+          <div id="codeBox" class="code-box" hidden>
+            <label for="codeText">繳交代碼（已複製；若沒有複製成功，請全選後手動複製）</label>
+            <textarea id="codeText" readonly rows="4"></textarea>
+          </div>
+          <div class="howto">
+            <div class="howto-title">怎麼繳交？依老師指定的方式：</div>
+            <ol>
+              <li><b>上傳檔案</b>：按「下載作業檔」，把 .json 檔上傳到教學平台。</li>
+              <li><b>Google 表單</b>：按「複製繳交代碼」，貼到表單的答案欄。</li>
+              <li><b>繳交圖片</b>：按「下載電路圖」，上傳 PNG 圖檔。</li>
+            </ol>
+            <p class="muted small">所有資料只存在你的瀏覽器中；檔案或代碼都包含你的電路，老師可以直接批改。</p>
+          </div>
+        </section>
+      </div>
+    </aside>
+    <button class="panel-toggle" id="panelToggle" aria-controls="panel" aria-expanded="false">題目／真值表</button>
+  </main>
+</div>
+
+<dialog id="dlgHelp" aria-labelledby="helpTitle">
+  <div class="dlg-head"><h2 id="helpTitle">操作說明</h2><button class="icon-btn dlg-close" data-close aria-label="關閉">✕</button></div>
+  <div class="dlg-body help">
+    <div class="help-grid">
+      <section>
+        <h3>1. 放置元件</h3>
+        <p>把左側的元件<b>拖曳</b>到畫布上，或<b>點一下</b>元件，它會出現在畫面中央。</p>
+        <h3>2. 連線</h3>
+        <p>從元件<b>右側的輸出端</b>（小圓點）拖曳到另一個元件<b>左側的輸入端</b>。也可以先點一下接腳、再點另一個接腳完成連線。一個輸出可以接到很多輸入；一個輸入只能有一條線，重新連線會取代原本的線。</p>
+        <h3>3. 模擬與觀察</h3>
+        <p>點一下<b>輸入開關</b>切換 0／1。導線<span class="sig1">橘色＝1</span>、<span class="sig0">深灰＝0</span>、虛線＝不確定（有輸入端沒接線）。右側「真值表」會自動列出所有輸入組合，並寫出布林表示式；點真值表的某一列，開關就會切換成那一列的值。</p>
+        <h3>4. 編輯</h3>
+        <p>點一下選取元件或導線，上方會出現工具列，可以<b>改輸入數</b>（2～4）、<b>改名稱</b>、<b>換閘的種類</b>或<b>刪除</b>。拖曳空白處可以移動畫面，滾輪可以縮放；按住 Shift 拖曳可框選多個元件。</p>
+        <h3>5. 練習與繳交</h3>
+        <p>從上方「題目」選單選題 → 完成電路 → 按「檢查答案」→ 到「繳交」分頁輸入學號姓名，依老師指定方式繳交。</p>
+      </section>
+      <section>
+        <h3>快速鍵</h3>
+        <table class="keys">
+          <tr><td><kbd>Delete</kbd>／<kbd>Backspace</kbd></td><td>刪除選取的元件或導線</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>復原</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Y</kbd>／<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>重做</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd>／<kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>複製／貼上元件</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>再製一份選取的元件</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>全選</td></tr>
+          <tr><td>方向鍵</td><td>微調選取元件的位置</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>取消連線／取消選取</td></tr>
+          <tr><td>滾輪／雙指捏合</td><td>縮放畫面</td></tr>
+          <tr><td>拖曳空白處</td><td>移動畫面</td></tr>
+          <tr><td><kbd>Shift</kbd>+拖曳</td><td>框選</td></tr>
+          <tr><td>雙擊輸入／輸出</td><td>修改名稱</td></tr>
+        </table>
+        <h3>小提醒</h3>
+        <ul>
+          <li>作答進度會自動儲存在這台電腦的瀏覽器裡；換電腦請用「檔案 → 儲存電路檔」。</li>
+          <li>橘色空心圓代表<b>還沒接線的輸入端</b>，要全部接好才能得到正確結果。</li>
+          <li>「檢視」選單可以切換直角／曲線導線、ANSI／IEC 符號。</li>
+        </ul>
+        <p class="muted small" id="aboutLine"></p>
+      </section>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgTeacher" class="wide" aria-labelledby="teacherTitle">
+  <div class="dlg-head">
+    <h2 id="teacherTitle">教師專區</h2>
+    <div class="tabs tabs-inline" role="tablist">
+      <button role="tab" data-ttab="make" aria-selected="true">出題（作業連結）</button>
+      <button role="tab" data-ttab="grade" aria-selected="false">批改作業</button>
+      <button role="tab" data-ttab="guide" aria-selected="false">使用方式</button>
+    </div>
+    <button class="icon-btn dlg-close" data-close aria-label="關閉">✕</button>
+  </div>
+  <div class="dlg-body">
+    <section data-tpane="make">
+      <div class="make-grid">
+        <div class="make-form">
+          <label>題目名稱<input id="tTitle" maxlength="60" placeholder="例如：設計一個 2 對 1 多工器"></label>
+          <label>題目說明<textarea id="tDesc" rows="3" maxlength="1200" placeholder="寫給學生看的說明（純文字）"></textarea></label>
+          <label>輸入變數（用逗號分隔）<input id="tInputs" placeholder="A, B, C"></label>
+          <label>輸出（每行一個）
+            <textarea id="tOutputs" rows="3" placeholder="F = A'B + C&#10;G = m(1, 2, 4, 7)"></textarea>
+          </label>
+          <p class="muted small">輸出可以寫布林式（A'B + C、(A+B)(C+D)、A ⊕ B、A^B）或最小項 m(1,2,4)、加上無關項 m(1,2) + d(3)。</p>
+          <div class="row-btns">
+            <button class="btn" id="tFromCircuit">用目前畫布的電路當答案</button>
+            <button class="btn" id="tPreviewBtn">預覽真值表</button>
+          </div>
+          <fieldset>
+            <legend>限制（選填）</legend>
+            <div class="allowed" id="tAllowed"></div>
+            <div class="inline-fields">
+              <label>最多幾個閘<input id="tMaxGates" type="number" min="1" max="99" placeholder="不限"></label>
+              <label>每個閘最多輸入數
+                <select id="tMaxFanIn"><option value="">不限</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+              </label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>選項</legend>
+            <label class="check"><input type="checkbox" id="tSelfCheck" checked> 允許學生自己按「檢查答案」</label>
+            <label class="check"><input type="checkbox" id="tShowTarget"> 題目頁直接顯示目標真值表</label>
+            <label class="check"><input type="checkbox" id="tStarter" checked> 預先放好輸入與輸出（名稱固定，方便批改）</label>
+          </fieldset>
+          <label>提示（選填）<input id="tHint" maxlength="300"></label>
+          <button class="btn btn-primary" id="tMake">產生作業連結</button>
+        </div>
+        <div class="make-out">
+          <div id="tPreview" class="t-preview muted">輸入題目後按「預覽真值表」。</div>
+          <div id="tResult" class="t-result" hidden>
+            <label>作業連結（貼到教學平台給學生開啟）<textarea id="tLink" readonly rows="4"></textarea></label>
+            <div class="row-btns">
+              <button class="btn btn-primary" id="tCopyLink">複製連結</button>
+              <button class="btn" id="tOpenLink">在此開啟作業</button>
+              <button class="btn" id="tCopyJs">複製為 exercises.js 題目</button>
+            </div>
+            <p class="muted small" id="tLinkNote"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section data-tpane="grade" hidden>
+      <div class="grade-top">
+        <label class="grow">批改依據（選填：貼上作業連結，就會以該作業的標準答案批改）
+          <input id="gRef" placeholder="https://…#hw=…　不填則自動判斷">
+        </label>
+      </div>
+      <div class="drop" id="gDrop" tabindex="0">
+        <div class="drop-title">把學生的作業檔（.json）拖到這裡，可一次多個</div>
+        <div class="muted small">也可以拖入 Google 表單下載的回覆 CSV，系統會自動找出裡面的繳交代碼</div>
+        <button class="btn" id="gPick">選擇檔案…</button>
+        <input type="file" id="gFiles" accept=".json,.csv,.txt,application/json,text/csv,text/plain" multiple hidden>
+      </div>
+      <label>或直接貼上繳交代碼（可貼很多筆，一行一筆）<textarea id="gPaste" rows="3" placeholder="LGS1z…"></textarea></label>
+      <div class="row-btns">
+        <button class="btn btn-primary" id="gRun">開始批改</button>
+        <button class="btn" id="gCsv" disabled>下載成績（CSV）</button>
+        <button class="btn" id="gClear">清除結果</button>
+        <span class="muted small" id="gSummary"></span>
+      </div>
+      <div id="gTable" class="g-table"></div>
+    </section>
+    <section data-tpane="guide" hidden>
+      <div class="guide">
+        <h3>建議的上課與作業流程</h3>
+        <ol>
+          <li><b>課堂練習</b>：學生從「題目」選單選內建練習題，完成後按「檢查答案」立即得到回饋。</li>
+          <li><b>指定作業</b>：在「出題」分頁輸入題目（布林式、最小項，或直接用畫布上的電路當答案），產生<b>作業連結</b>，貼到教學平台。學生打開連結就會載入題目，輸入輸出也會預先放好。</li>
+          <li><b>繳交</b>：學生在「繳交」分頁輸入學號姓名，下載 <code>.json</code> 作業檔上傳，或複製<b>繳交代碼</b>貼到 Google 表單。</li>
+          <li><b>批改</b>：把收到的作業檔（或 Google 表單的回覆 CSV）拖進「批改作業」，系統會重新模擬每位學生的電路、比對真值表與限制條件，並可下載成績 CSV。</li>
+        </ol>
+        <h3>注意事項</h3>
+        <ul>
+          <li>本網頁是純前端靜態網頁，不會把任何資料傳到伺服器；學生的作答存在各自的瀏覽器中。</li>
+          <li>批改時一律<b>重新模擬學生的電路</b>，不採用檔案內學生自己的檢查結果。內建題目會以網頁目前的題目定義為準。</li>
+          <li>「版面完全相同」表示兩份作業的元件位置與連線一模一樣，可能是互相複製，僅供參考。</li>
+          <li>想新增固定的內建題目，可編輯 <code>exercises.js</code>（格式見 README）；「出題」分頁的「複製為 exercises.js 題目」可產生可直接貼上的程式碼。</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="dlgPreview" class="wide" aria-labelledby="pvTitle">
+  <div class="dlg-head"><h2 id="pvTitle">作業內容</h2><button class="icon-btn dlg-close" data-close aria-label="關閉">✕</button></div>
+  <div class="dlg-body" id="pvBody"></div>
+</dialog>
+
+<div id="ghost" class="drag-ghost" hidden></div>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<input type="file" id="fileOpen" accept=".json,application/json" hidden>
+
+<script src="exercises.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
