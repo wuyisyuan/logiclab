@@ -106,6 +106,7 @@ function runCheck() {
   renderTaskPane();
   const r = S.lastCheck;
   if (r.pass) toast('✔ 通過！做得好', 'ok');
+  else if (r.correct === r.total && (r.violations.length || r.errors.length)) toast('還沒通過：' + (r.violations[0] || r.errors[0]), 'err', 4000);
   else toast(`還沒通過：真值表正確 ${r.correct}/${r.total} 列`, 'err');
 }
 function checkResultHTML() {
