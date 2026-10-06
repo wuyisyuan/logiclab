@@ -20,7 +20,7 @@
  * 可用的閘：AND、OR、NOT、NAND、NOR、XOR、XNOR、BUF
  */
 window.LOGIC_LAB_CONFIG = {
-  courseName: '數位邏輯設計｜第 4 週 基本邏輯閘與組合邏輯',
+  courseName: '數位邏輯設計｜邏輯閘與布林代數練習',
 
   exercises: [
     // ───────── 認識邏輯閘 ─────────
@@ -162,7 +162,7 @@ window.LOGIC_LAB_CONFIG = {
 
     // ───────── 挑戰題 ─────────
     {
-      id: 'w4-16', group: '挑戰題', level: 4,
+      id: 'w4-16', group: '第 4 週｜挑戰題', level: 4,
       title: '全加器（Full Adder）',
       desc: '<p>三個 1 位元輸入 A、B、Cin（前一位的進位）相加，輸出和 <b>S</b> 與進位 <b>Cout</b>。</p><p><code>S = A ⊕ B ⊕ Cin</code>，<code>Cout = AB + Cin(A ⊕ B)</code></p>',
       inputs: ['A', 'B', 'Cin'],
@@ -170,19 +170,102 @@ window.LOGIC_LAB_CONFIG = {
       hint: '可以用兩個半加器加一個 OR 閘組成。'
     },
     {
-      id: 'w4-17', group: '挑戰題', level: 4,
+      id: 'w4-17', group: '第 4 週｜挑戰題', level: 4,
       title: '2 對 1 多工器（MUX）',
       desc: '<p>選擇線 <b>S</b> = 0 時輸出 <b>Y = D0</b>；S = 1 時輸出 <b>Y = D1</b>。</p><p><code>Y = S\'D0 + SD1</code></p>',
       inputs: ['S', 'D0', 'D1'],
       outputs: { Y: "S'D0 + SD1" }
     },
     {
-      id: 'w4-18', group: '挑戰題', level: 4,
+      id: 'w4-18', group: '第 4 週｜挑戰題', level: 4,
       title: '1 位元比較器',
       desc: '<p>比較兩個 1 位元數 A、B，輸出三個訊號：<b>G</b>（A &gt; B）、<b>E</b>（A = B）、<b>L</b>（A &lt; B）。</p>',
       inputs: ['A', 'B'],
       outputs: { G: "AB'", E: "(A ⊕ B)'", L: "A'B" },
       hint: 'G = AB\'，E = (A ⊕ B)\'，L = A\'B。'
+    },
+
+    // ───────── 第 5 週：布林代數化簡（閘數上限逼你先化簡） ─────────
+    {
+      id: 'w5-01', group: '第 5 週｜化簡定理', level: 2,
+      title: '化簡：F = A(A\' + B)',
+      desc: '<p>先用布林代數化簡 <code>F = A(A\' + B)</code>，再用<b>最少的閘</b>實現。</p><p>照原式直接畫要 NOT、OR、AND 3 個閘；化簡後只能用 <b>1 個閘</b>。</p>',
+      inputs: ['A', 'B'],
+      outputs: { F: "A(A' + B)" },
+      maxGates: 1,
+      hint: '分配律：AA\' + AB，再用互補律 AA\' = 0。'
+    },
+    {
+      id: 'w5-02', group: '第 5 週｜化簡定理', level: 2,
+      title: '吸收律：F = A\'BC + A\'',
+      desc: '<p>化簡 <code>F = A\'BC + A\'</code>，最多用 <b>1 個閘</b>。</p><p>化簡後有些輸入可能用不到——這很正常。</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: "A'BC + A'" },
+      maxGates: 1,
+      hint: '吸收律 X + XY = X，這裡 X = A\'、Y = BC。'
+    },
+    {
+      id: 'w5-03', group: '第 5 週｜化簡定理', level: 2,
+      title: '消去律：F = AB\' + B',
+      desc: '<p>化簡 <code>F = AB\' + B</code>，最多用 <b>1 個閘</b>。</p>',
+      inputs: ['A', 'B'],
+      outputs: { F: "AB' + B" },
+      maxGates: 1,
+      hint: '消去律 XY\' + Y = X + Y。'
+    },
+    {
+      id: 'w5-04', group: '第 5 週｜化簡定理', level: 2,
+      title: '第二分配律：F = (A + B)(A + C)',
+      desc: '<p>化簡 <code>F = (A + B)(A + C)</code>，最多用 <b>2 個閘</b>。</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: '(A + B)(A + C)' },
+      maxGates: 2,
+      hint: '第二分配律 X + YZ = (X + Y)(X + Z)，反過來用：(A + B)(A + C) = A + BC。'
+    },
+    {
+      id: 'w5-05', group: '第 5 週｜化簡定理', level: 3,
+      title: '多數決電路化簡',
+      desc: '<p>三人多數決逐列寫出來是 <code>F = A\'BC + AB\'C + ABC\' + ABC</code>，直接畫要 4 個 AND、1 個 OR，還要 3 個 NOT。</p><p>請先化簡，再用<b>最多 4 個閘</b>實現。</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: "A'BC + AB'C + ABC' + ABC" },
+      maxGates: 4,
+      hint: '等冪律：ABC = ABC + ABC + ABC；再把 ABC 分別和另外三項配對，用相鄰定理 XY + XY\' = X。'
+    },
+    {
+      id: 'w5-06', group: '第 5 週｜化簡定理', level: 3,
+      title: '一致項：F = AB + A\'C + BC',
+      desc: '<p>化簡 <code>F = AB + A\'C + BC</code>，最多用 <b>4 個閘</b>（NOT 也算一個閘）。</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: "AB + A'C + BC" },
+      maxGates: 4,
+      hint: 'AB 與 A\'C 中只有 A 一正一反，一致項是 BC，所以 BC 是多餘的：F = AB + A\'C。'
+    },
+    {
+      id: 'w5-07', group: '第 5 週｜SOP、POS 與笛摩根定理', level: 3,
+      title: 'POS 化簡：F = (A + B\')(A + C)(A + D)',
+      desc: '<p>照和之積 (POS) 直接畫要 NOT、3 個 OR、1 個 AND 共 5 個閘。</p><p>請化簡後用<b>最多 3 個閘</b>實現。</p>',
+      inputs: ['A', 'B', 'C', 'D'],
+      outputs: { F: "(A + B')(A + C)(A + D)" },
+      maxGates: 3,
+      hint: '反覆使用第二分配律：(A + B\')(A + C)(A + D) = A + B\'CD。'
+    },
+    {
+      id: 'w5-08', group: '第 5 週｜SOP、POS 與笛摩根定理', level: 2,
+      title: '只用 AND 與 NOT 做出 NOR',
+      desc: '<p>只能用 <b>AND、NOT</b>，做出 <code>F = (A + B)\'</code>。</p>',
+      inputs: ['A', 'B'],
+      outputs: { F: "(A + B)'" },
+      allowed: ['AND', 'NOT'], maxGates: 3,
+      hint: '笛摩根定理：(A + B)\' = A\'B\'。'
+    },
+    {
+      id: 'w5-09', group: '第 5 週｜SOP、POS 與笛摩根定理', level: 3,
+      title: 'XOR 的補數',
+      desc: '<p>用笛摩根定理求 <code>F = (A\'B + AB\')\'</code> 的最簡 SOP，只用 <b>AND、OR、NOT</b> 實現（最多 5 個閘）。</p><p>做完到「真值表」看看：F 等於哪一種閘？</p>',
+      inputs: ['A', 'B'],
+      outputs: { F: "(A'B + AB')'" },
+      allowed: ['AND', 'OR', 'NOT'], maxGates: 5,
+      hint: '(A\'B)\'(AB\')\' = (A + B\')(A\' + B) = AB + A\'B\'，也就是 XNOR。'
     }
   ]
 };
