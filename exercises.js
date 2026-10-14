@@ -266,6 +266,71 @@ window.LOGIC_LAB_CONFIG = {
       outputs: { F: "(A'B + AB')'" },
       allowed: ['AND', 'OR', 'NOT'], maxGates: 5,
       hint: '(A\'B)\'(AB\')\' = (A + B\')(A\' + B) = AB + A\'B\'，也就是 XNOR。'
+    },
+
+    // ───────── 第 6 週：布林函數與標準型式（最小項、最大項、無關項、NAND／NOR 兩層電路） ─────────
+    {
+      id: 'w6-01', group: '第 6 週｜最小項與最大項', level: 2,
+      title: '由最小項畫電路：F = Σm(0, 1, 2)',
+      desc: '<p>F(A, B, C) = Σm(0, 1, 2)。先寫出正規 SOP（三個最小項相加），化簡後再畫，最多用 <b>2 個閘</b>。</p><p>提示：從「0」的那幾列想會更快。</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: 'm(0, 1, 2)' },
+      maxGates: 2,
+      hint: 'A\'B\'C\' + A\'B\'C + A\'BC\' = A\'B\' + A\'C\' = A\'(B\' + C\') = (A + BC)\'：一個 AND、一個 NOR。'
+    },
+    {
+      id: 'w6-02', group: '第 6 週｜最小項與最大項', level: 2,
+      title: '由最大項畫電路：F = ΠM(0, 2, 3)',
+      desc: '<p>F(A, B, C) = ΠM(0, 2, 3)。先寫出正規 POS（三個最大項相乘），化簡後再畫，最多用 <b>3 個閘</b>。</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: 'M(0, 2, 3)' },
+      maxGates: 3,
+      hint: '(A + B + C)(A + B\' + C)(A + B\' + C\') = (A + C)(A + B\') = A + B\'C。'
+    },
+    {
+      id: 'w6-03', group: '第 6 週｜最小項與最大項', level: 2,
+      title: '文字敘述 → 布林式：警報器',
+      desc: '<p>警報器會響 (Z = 1) 的條件：<b>電源開著 (A = 1) 而且門沒關 (B = 0)</b>，或者<b>已經過了六點 (C = 1) 而且窗戶沒關 (D = 0)</b>。</p><p>先寫出 Z 的布林式，再畫電路（最多 <b>5 個閘</b>）。</p>',
+      inputs: ['A', 'B', 'C', 'D'],
+      outputs: { Z: 'AB\' + CD\'' },
+      maxGates: 5,
+      hint: 'Z = AB\' + CD\'：兩個 NOT、兩個 AND、一個 OR。'
+    },
+    {
+      id: 'w6-04', group: '第 6 週｜最小項與最大項', level: 3,
+      title: '不完全指定函數：F = Σm(0, 3, 7) + Σd(1, 6)',
+      desc: '<p>F(A, B, C) = Σm(0, 3, 7) + Σd(1, 6)：第 1、6 列是<b>無關項</b> (don\'t care)，輸出 0 或 1 都算對。</p><p>把無關項指定成對你最有利的值，再化簡，最多用 <b>4 個閘</b>。</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: 'm(0, 3, 7) + d(1, 6)' },
+      maxGates: 4,
+      hint: '把 d1 當 1、d6 當 0：F = A\'B\'C\' + A\'B\'C + A\'BC + ABC = A\'B\' + BC；A\'B\' = (A + B)\' 可以用一個 NOR 做出來。'
+    },
+    {
+      id: 'w6-05', group: '第 6 週｜兩層電路與通用閘', level: 3,
+      title: 'SOP 用 NAND 實現：F = AB + CD',
+      desc: '<p>AND-OR 兩層電路可以直接換成 NAND-NAND。只用 <b>NAND</b>，最多 <b>3 個閘</b>，做出 <code>F = AB + CD</code>。</p>',
+      inputs: ['A', 'B', 'C', 'D'],
+      outputs: { F: 'AB + CD' },
+      allowed: ['NAND'], maxGates: 3,
+      hint: 'AB + CD = ((AB)\'(CD)\')\'：兩個 NAND 的輸出再接一個 NAND（笛摩根定理）。'
+    },
+    {
+      id: 'w6-06', group: '第 6 週｜兩層電路與通用閘', level: 3,
+      title: 'POS 用 NOR 實現：F = (A + B)(C + D)',
+      desc: '<p>OR-AND 兩層電路可以直接換成 NOR-NOR。只用 <b>NOR</b>，最多 <b>3 個閘</b>，做出 <code>F = (A + B)(C + D)</code>。</p>',
+      inputs: ['A', 'B', 'C', 'D'],
+      outputs: { F: '(A + B)(C + D)' },
+      allowed: ['NOR'], maxGates: 3,
+      hint: '(A + B)(C + D) = ((A + B)\' + (C + D)\')\'：兩個 NOR 的輸出再接一個 NOR。'
+    },
+    {
+      id: 'w6-07', group: '第 6 週｜兩層電路與通用閘', level: 4,
+      title: '輸入直接接到 OR：F = AB + C（只用 NAND）',
+      desc: '<p>只用 <b>NAND</b>，最多 <b>3 個閘</b>，做出 <code>F = AB + C</code>。</p><p>C 直接接到 OR 的輸入，換成 NAND-NAND 時要怎麼處理？（把一個 NAND 的兩個輸入都接同一個訊號，就是 NOT。）</p>',
+      inputs: ['A', 'B', 'C'],
+      outputs: { F: 'AB + C' },
+      allowed: ['NAND'], maxGates: 3,
+      hint: 'AB + C = ((AB)\' · C\')\'：直接接到 OR 的輸入要先取補數。'
     }
   ]
 };
