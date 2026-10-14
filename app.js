@@ -5,7 +5,7 @@
 /* ============================================================
  * 00 基本設定與工具函式
  * ============================================================ */
-const APP = { name: 'LogicLab', version: '1.0.0' };
+const APP = { name: 'LogicLab', version: '1.1.0' };
 const CFG = Object.assign({ courseName: '數位邏輯設計', exercises: [] }, window.LOGIC_LAB_CONFIG || {});
 const GRID = 10;
 const X = 2;                 // 未知／浮接的邏輯值
@@ -390,6 +390,7 @@ function compSVG(c, ctx) {
   if (g.out) {
     const [px, py] = g.out;
     if (!ctx.idx.fanout.has(c.id)) o.push(`<circle cx="${px}" cy="${py}" r="3.2" style="fill:${P.fill};stroke:${P.muted}" stroke-width="1.6"/>`);
+    else if (live) o.push(`<circle cx="${px}" cy="${py}" r="3.4" style="fill:${leadCol(myVal)}"/>`);
     if (ctx.hot && ctx.hot.has(c.id + ':o')) o.push(`<circle cx="${px}" cy="${py}" r="8" style="fill:${P.sel}" fill-opacity="0.45"/>`);
     if (live) o.push(`<circle cx="${px}" cy="${py}" r="9" class="pin" data-pin="${c.id}:o"/>`);
   }
@@ -1288,16 +1289,16 @@ function renderOverlay(P) {
   const o = [];
   const wr = S.wiring || S.pending;
   if (wr && wr.cur && (!S.wiring || S.wiring.moved)) {
-    const [px, py] = pinWorld(wr.from);
+    const [px, py] = wr.origin ? [wr.origin.x, wr.origin.y] : pinWorld(wr.from);
     let [qx, qy] = [wr.cur.x, wr.cur.y];
     if (wr.hot) [qx, qy] = pinWorld(wr.hot);
     const [sx, sy, tx2, ty2] = wr.from.isOut ? [px, py, qx, qy] : [qx, qy, px, py];
     const dx = Math.max(30, Math.abs(tx2 - sx) * 0.5);
-    o.push(`<path d="M${sx},${sy} C${sx + dx},${sy} ${tx2 - dx},${ty2} ${tx2},${ty2}" style="stroke:${P.sel}" stroke-width="2.6" fill="none" stroke-linecap="round"${wr.hot ? '' : ' stroke-dasharray="7 5"'}/>`);
+    o.push(`<path d="M${sx},${sy} C${sx + dx},${sy} ${tx2 - dx},${ty2} ${tx2},${ty2}" style="stroke:${P.sel}" stroke-width="2.6" fill="none" stroke-linecap="round" pointer-events="none"${wr.hot ? '' : ' stroke-dasharray="7 5"'}/>`);
   }
   if (S.box) {
     const b = normBox(S.box);
-    o.push(`<rect x="${b.x1}" y="${b.y1}" width="${b.x2 - b.x1}" height="${b.y2 - b.y1}" style="fill:${P.sel};stroke:${P.sel}" fill-opacity="0.08" stroke-width="${1.2 / S.view.k}" stroke-dasharray="5 4"/>`);
+    o.push(`<rect x="${b.x1}" y="${b.y1}" width="${b.x2 - b.x1}" height="${b.y2 - b.y1}" style="fill:${P.sel};stroke:${P.sel}" fill-opacity="0.08" stroke-width="${1.2 / S.view.k}" stroke-dasharray="5 4" pointer-events="none"/>`);
   }
   layerOverlay.innerHTML = o.join('');
 }
@@ -1536,7 +1537,18 @@ function findPinNear(wx, wy, wantOut, excludeCid, radius) {
   }
   return best;
 }
-function findTarget(from, cur) { return findPinNear(cur.x, cur.y, !from.isOut, from.cid, 20 / S.view.k); }
+function findTarget(from, cur, client) {
+  const p = findPinNear(cur.x, cur.y, !from.isOut, from.cid, 20 / S.view.k);
+  if (p || from.isOut || !client) return p;
+  // 從閘的「輸入端」拖到任何一條導線上：接到這條導線的來源（同一個訊號）
+  const w = wireAt(client.x, client.y);
+  return w && w.from !== from.cid ? { cid: w.from, isOut: true, pin: -1 } : null;
+}
+function wireAt(cx, cy) {
+  const t = document.elementFromPoint(cx, cy);
+  const we = t && t.closest ? t.closest('[data-wire]') : null;
+  return we ? S.circ.wires.find(w => w.id === we.getAttribute('data-wire')) || null : null;
+}
 function connectPins(a, b) {
   if (a.isOut === b.isOut) return false;
   const src = a.isOut ? a : b, dst = a.isOut ? b : a;
@@ -1597,10 +1609,25 @@ function onPointerDown(e) {
   }
   const wireEl = t && t.closest('[data-wire]');
   if (wireEl) {
+    const wid = wireEl.getAttribute('data-wire');
+    const wobj = S.circ.wires.find(x => x.id === wid);
+    if (S.pending && wobj && !S.pending.from.isOut) {
+      // 先點了閘的輸入端，再點一條導線：接到這條導線的來源
+      const to = S.pending.from;
+      S.pending = null;
+      connectPins({ cid: wobj.from, isOut: true, pin: -1 }, to);
+      requestRender();
+      return;
+    }
     cancelPending();
     S.sel.clear();
-    S.selWire = wireEl.getAttribute('data-wire');
-    updateSelTools(); requestRender();
+    S.selWire = wid;
+    updateSelTools();
+    if (wobj) {
+      S.wirePress = { from: { cid: wobj.from, isOut: true, pin: -1 }, sx: e.clientX, sy: e.clientY, origin: w };
+      S.mode = 'wirepress';
+    }
+    requestRender();
     return;
   }
   cancelPending();
@@ -1610,7 +1637,7 @@ function onPointerDown(e) {
 function startPan(e) { S.pan = { sx: e.clientX, sy: e.clientY, vx: S.view.x, vy: S.view.y, moved: false }; S.mode = 'pan'; }
 function startPinch() {
   if (S.drag && S.drag.moved) commitChange(S.drag.before);
-  S.mode = null; S.drag = null; S.wiring = null; S.pan = null; S.box = null;
+  S.mode = null; S.drag = null; S.wiring = null; S.wirePress = null; S.pan = null; S.box = null;
   const [a, b] = [...S.pointers.values()], r = boardRect();
   S.pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, k0: S.view.k, mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top, vx: S.view.x, vy: S.view.y };
   requestRender();
@@ -1632,7 +1659,18 @@ function onPointerMove(e) {
       const wr = S.wiring;
       wr.cur = toWorld(e.clientX, e.clientY);
       if (!wr.moved && Math.hypot(e.clientX - wr.sx, e.clientY - wr.sy) > 4) wr.moved = true;
-      wr.hot = wr.moved ? findTarget(wr.from, wr.cur) : null;
+      wr.hot = wr.moved ? findTarget(wr.from, wr.cur, { x: e.clientX, y: e.clientY }) : null;
+      requestRender();
+      return;
+    }
+    case 'wirepress': {
+      const wp = S.wirePress;
+      if (Math.hypot(e.clientX - wp.sx, e.clientY - wp.sy) <= 4) return;
+      S.selWire = null; updateSelTools();
+      const cur = toWorld(e.clientX, e.clientY);
+      S.wiring = { from: wp.from, origin: wp.origin, sx: wp.sx, sy: wp.sy, cur, hot: findTarget(wp.from, cur), moved: true };
+      S.wirePress = null;
+      S.mode = 'wire';
       requestRender();
       return;
     }
@@ -1670,7 +1708,7 @@ function onPointerMove(e) {
   }
   if (S.pending) {
     S.pending.cur = toWorld(e.clientX, e.clientY);
-    S.pending.hot = findTarget(S.pending.from, S.pending.cur);
+    S.pending.hot = findTarget(S.pending.from, S.pending.cur, { x: e.clientX, y: e.clientY });
     requestRender();
   }
 }
@@ -1683,7 +1721,7 @@ function onPointerUp(e) {
     const wr = S.wiring;
     S.wiring = null;
     if (wr.moved) {
-      const target = wr.hot || findTarget(wr.from, toWorld(e.clientX, e.clientY));
+      const target = wr.hot || findTarget(wr.from, toWorld(e.clientX, e.clientY), { x: e.clientX, y: e.clientY });
       if (target) connectPins(wr.from, target);
     } else {
       S.pending = { from: wr.from, cur: toWorld(e.clientX, e.clientY), hot: null };
@@ -1691,6 +1729,7 @@ function onPointerUp(e) {
     requestRender();
     return;
   }
+  if (mode === 'wirepress') { S.wirePress = null; return; }
   if (mode === 'drag') {
     const d = S.drag;
     S.drag = null;
@@ -1720,7 +1759,7 @@ function onPointerUp(e) {
 function onPointerCancel(e) {
   S.pointers.delete(e.pointerId);
   if (S.drag && S.drag.moved) commitChange(S.drag.before);
-  S.mode = null; S.drag = null; S.wiring = null; S.pan = null; S.box = null;
+  S.mode = null; S.drag = null; S.wiring = null; S.wirePress = null; S.pan = null; S.box = null;
   if (S.pointers.size < 2) S.pinch = null;
   board.classList.remove('panning');
   requestRender();
@@ -1957,6 +1996,7 @@ function renderTaskPane() {
       <ul class="free-tips">
         <li>想做練習題：從上方<b>「題目」</b>選單選一題，完成後可以自動檢查。</li>
         <li>從元件<b>右側的小圓點</b>拖曳到另一個元件<b>左側的輸入端</b>就能連線。</li>
+        <li>同一個輸入要接到好幾個閘：從它的小圓點再拖一條線，或<b>從已經接好的導線上</b>按住拖出分支。</li>
         <li>選取閘之後，上方工具列可以改輸入數、換成其他閘或刪除。</li>
       </ul>
       <h3 class="pane-title" style="font-size:16px">載入範例電路</h3>
@@ -1975,6 +2015,7 @@ function renderTaskPane() {
     <h2 class="task-title">${esc(a.title)}</h2>
     <div class="chips">${chips.join('')}</div>
     <div class="task-desc">${a.html ? a.desc : escText(a.desc)}</div>
+    ${a.inputs.length > 1 ? '<p class="note fanout-tip">小技巧：同一個輸入可以接到好幾個閘──從它右側的小圓點再拖一條線，或從已經接好的導線上按住拖出分支。</p>' : ''}
     <details class="box"${a.showTarget ? ' open' : ''}><summary>目標真值表</summary><div class="box-body">${targetTableHTML(a)}</div></details>
     ${a.hint ? `<details class="box"><summary>提示</summary><div class="box-body">${escText(a.hint)}</div></details>` : ''}
     <div class="task-actions">

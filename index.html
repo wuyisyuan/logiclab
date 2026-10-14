@@ -6,7 +6,7 @@
 <title>LogicLab 邏輯閘練習</title>
 <meta name="description" content="在瀏覽器中繪製邏輯閘電路、即時模擬、產生真值表與時序圖，並完成與繳交數位邏輯作業。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23335B74'/%3E%3Cpath d='M16 16h14a16 16 0 0 1 0 32H16z' fill='none' stroke='%23fff' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M46 32h8M8 24h8M8 40h8' stroke='%23F76707' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=1.1.0">
 </head>
 <body>
 <div id="app">
@@ -85,7 +85,7 @@
           <div class="empty-title">從左側把元件拖曳到這裡</div>
           <ol>
             <li>拖曳（或點一下）左側的<b>輸入</b>、<b>邏輯閘</b>、<b>輸出</b></li>
-            <li>從元件<b>右側的小圓點</b>拖曳到另一個元件<b>左側的輸入端</b>即可連線</li>
+            <li>從元件<b>右側的小圓點</b>拖曳到另一個元件<b>左側的輸入端</b>即可連線（同一個輸出可以拉出好幾條線）</li>
             <li>點一下<b>輸入開關</b>切換 0／1，右側會即時產生真值表</li>
           </ol>
         </div>
@@ -163,7 +163,7 @@
         <h3>1. 放置元件</h3>
         <p>把左側的元件<b>拖曳</b>到畫布上，或<b>點一下</b>元件，它會出現在畫面中央。</p>
         <h3>2. 連線</h3>
-        <p>從元件<b>右側的輸出端</b>（小圓點）拖曳到另一個元件<b>左側的輸入端</b>。也可以先點一下接腳、再點另一個接腳完成連線。一個輸出可以接到很多輸入；一個輸入只能有一條線，重新連線會取代原本的線。</p>
+        <p>從元件<b>右側的輸出端</b>（小圓點）拖曳到另一個元件<b>左側的輸入端</b>。也可以先點一下接腳、再點另一個接腳完成連線。一個輸出可以接到很多輸入：從同一個輸出端再拖一條線，或<b>從已經接好的導線上任一點按住拖曳</b>拉出分支；反過來，從閘的輸入端拖到某一條導線上，也會接上那條導線的訊號。一個輸入只能有一條線，重新連線會取代原本的線。</p>
         <h3>3. 模擬與觀察</h3>
         <p>點一下<b>輸入開關</b>切換 0／1。導線<span class="sig1">橘色＝1</span>、<span class="sig0">深灰＝0</span>、虛線＝不確定（有輸入端沒接線）。右側「真值表」會自動列出所有輸入組合，並寫出布林表示式；點真值表的某一列，開關就會切換成那一列的值。</p>
         <h3>4. 編輯</h3>
@@ -308,7 +308,7 @@
 <div id="toasts" class="toasts" aria-live="polite"></div>
 <input type="file" id="fileOpen" accept=".json,application/json" hidden>
 
-<script src="exercises.js"></script>
-<script src="app.js"></script>
+<script src="exercises.js?v=1.1.0"></script>
+<script src="app.js?v=1.1.0"></script>
 </body>
 </html>

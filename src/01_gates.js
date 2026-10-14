@@ -221,6 +221,7 @@ function compSVG(c, ctx) {
   if (g.out) {
     const [px, py] = g.out;
     if (!ctx.idx.fanout.has(c.id)) o.push(`<circle cx="${px}" cy="${py}" r="3.2" style="fill:${P.fill};stroke:${P.muted}" stroke-width="1.6"/>`);
+    else if (live) o.push(`<circle cx="${px}" cy="${py}" r="3.4" style="fill:${leadCol(myVal)}"/>`);
     if (ctx.hot && ctx.hot.has(c.id + ':o')) o.push(`<circle cx="${px}" cy="${py}" r="8" style="fill:${P.sel}" fill-opacity="0.45"/>`);
     if (live) o.push(`<circle cx="${px}" cy="${py}" r="9" class="pin" data-pin="${c.id}:o"/>`);
   }

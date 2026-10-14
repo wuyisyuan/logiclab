@@ -68,6 +68,7 @@ function renderTaskPane() {
       <ul class="free-tips">
         <li>想做練習題：從上方<b>「題目」</b>選單選一題，完成後可以自動檢查。</li>
         <li>從元件<b>右側的小圓點</b>拖曳到另一個元件<b>左側的輸入端</b>就能連線。</li>
+        <li>同一個輸入要接到好幾個閘：從它的小圓點再拖一條線，或<b>從已經接好的導線上</b>按住拖出分支。</li>
         <li>選取閘之後，上方工具列可以改輸入數、換成其他閘或刪除。</li>
       </ul>
       <h3 class="pane-title" style="font-size:16px">載入範例電路</h3>
@@ -86,6 +87,7 @@ function renderTaskPane() {
     <h2 class="task-title">${esc(a.title)}</h2>
     <div class="chips">${chips.join('')}</div>
     <div class="task-desc">${a.html ? a.desc : escText(a.desc)}</div>
+    ${a.inputs.length > 1 ? '<p class="note fanout-tip">小技巧：同一個輸入可以接到好幾個閘──從它右側的小圓點再拖一條線，或從已經接好的導線上按住拖出分支。</p>' : ''}
     <details class="box"${a.showTarget ? ' open' : ''}><summary>目標真值表</summary><div class="box-body">${targetTableHTML(a)}</div></details>
     ${a.hint ? `<details class="box"><summary>提示</summary><div class="box-body">${escText(a.hint)}</div></details>` : ''}
     <div class="task-actions">

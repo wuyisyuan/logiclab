@@ -1,7 +1,7 @@
 /* ============================================================
  * 00 基本設定與工具函式
  * ============================================================ */
-const APP = { name: 'LogicLab', version: '1.0.0' };
+const APP = { name: 'LogicLab', version: '1.1.0' };
 const CFG = Object.assign({ courseName: '數位邏輯設計', exercises: [] }, window.LOGIC_LAB_CONFIG || {});
 const GRID = 10;
 const X = 2;                 // 未知／浮接的邏輯值

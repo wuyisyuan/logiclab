@@ -80,16 +80,16 @@ function renderOverlay(P) {
   const o = [];
   const wr = S.wiring || S.pending;
   if (wr && wr.cur && (!S.wiring || S.wiring.moved)) {
-    const [px, py] = pinWorld(wr.from);
+    const [px, py] = wr.origin ? [wr.origin.x, wr.origin.y] : pinWorld(wr.from);
     let [qx, qy] = [wr.cur.x, wr.cur.y];
     if (wr.hot) [qx, qy] = pinWorld(wr.hot);
     const [sx, sy, tx2, ty2] = wr.from.isOut ? [px, py, qx, qy] : [qx, qy, px, py];
     const dx = Math.max(30, Math.abs(tx2 - sx) * 0.5);
-    o.push(`<path d="M${sx},${sy} C${sx + dx},${sy} ${tx2 - dx},${ty2} ${tx2},${ty2}" style="stroke:${P.sel}" stroke-width="2.6" fill="none" stroke-linecap="round"${wr.hot ? '' : ' stroke-dasharray="7 5"'}/>`);
+    o.push(`<path d="M${sx},${sy} C${sx + dx},${sy} ${tx2 - dx},${ty2} ${tx2},${ty2}" style="stroke:${P.sel}" stroke-width="2.6" fill="none" stroke-linecap="round" pointer-events="none"${wr.hot ? '' : ' stroke-dasharray="7 5"'}/>`);
   }
   if (S.box) {
     const b = normBox(S.box);
-    o.push(`<rect x="${b.x1}" y="${b.y1}" width="${b.x2 - b.x1}" height="${b.y2 - b.y1}" style="fill:${P.sel};stroke:${P.sel}" fill-opacity="0.08" stroke-width="${1.2 / S.view.k}" stroke-dasharray="5 4"/>`);
+    o.push(`<rect x="${b.x1}" y="${b.y1}" width="${b.x2 - b.x1}" height="${b.y2 - b.y1}" style="fill:${P.sel};stroke:${P.sel}" fill-opacity="0.08" stroke-width="${1.2 / S.view.k}" stroke-dasharray="5 4" pointer-events="none"/>`);
   }
   layerOverlay.innerHTML = o.join('');
 }
@@ -328,7 +328,18 @@ function findPinNear(wx, wy, wantOut, excludeCid, radius) {
   }
   return best;
 }
-function findTarget(from, cur) { return findPinNear(cur.x, cur.y, !from.isOut, from.cid, 20 / S.view.k); }
+function findTarget(from, cur, client) {
+  const p = findPinNear(cur.x, cur.y, !from.isOut, from.cid, 20 / S.view.k);
+  if (p || from.isOut || !client) return p;
+  // 從閘的「輸入端」拖到任何一條導線上：接到這條導線的來源（同一個訊號）
+  const w = wireAt(client.x, client.y);
+  return w && w.from !== from.cid ? { cid: w.from, isOut: true, pin: -1 } : null;
+}
+function wireAt(cx, cy) {
+  const t = document.elementFromPoint(cx, cy);
+  const we = t && t.closest ? t.closest('[data-wire]') : null;
+  return we ? S.circ.wires.find(w => w.id === we.getAttribute('data-wire')) || null : null;
+}
 function connectPins(a, b) {
   if (a.isOut === b.isOut) return false;
   const src = a.isOut ? a : b, dst = a.isOut ? b : a;
@@ -389,10 +400,25 @@ function onPointerDown(e) {
   }
   const wireEl = t && t.closest('[data-wire]');
   if (wireEl) {
+    const wid = wireEl.getAttribute('data-wire');
+    const wobj = S.circ.wires.find(x => x.id === wid);
+    if (S.pending && wobj && !S.pending.from.isOut) {
+      // 先點了閘的輸入端，再點一條導線：接到這條導線的來源
+      const to = S.pending.from;
+      S.pending = null;
+      connectPins({ cid: wobj.from, isOut: true, pin: -1 }, to);
+      requestRender();
+      return;
+    }
     cancelPending();
     S.sel.clear();
-    S.selWire = wireEl.getAttribute('data-wire');
-    updateSelTools(); requestRender();
+    S.selWire = wid;
+    updateSelTools();
+    if (wobj) {
+      S.wirePress = { from: { cid: wobj.from, isOut: true, pin: -1 }, sx: e.clientX, sy: e.clientY, origin: w };
+      S.mode = 'wirepress';
+    }
+    requestRender();
     return;
   }
   cancelPending();
@@ -402,7 +428,7 @@ function onPointerDown(e) {
 function startPan(e) { S.pan = { sx: e.clientX, sy: e.clientY, vx: S.view.x, vy: S.view.y, moved: false }; S.mode = 'pan'; }
 function startPinch() {
   if (S.drag && S.drag.moved) commitChange(S.drag.before);
-  S.mode = null; S.drag = null; S.wiring = null; S.pan = null; S.box = null;
+  S.mode = null; S.drag = null; S.wiring = null; S.wirePress = null; S.pan = null; S.box = null;
   const [a, b] = [...S.pointers.values()], r = boardRect();
   S.pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, k0: S.view.k, mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top, vx: S.view.x, vy: S.view.y };
   requestRender();
@@ -424,7 +450,18 @@ function onPointerMove(e) {
       const wr = S.wiring;
       wr.cur = toWorld(e.clientX, e.clientY);
       if (!wr.moved && Math.hypot(e.clientX - wr.sx, e.clientY - wr.sy) > 4) wr.moved = true;
-      wr.hot = wr.moved ? findTarget(wr.from, wr.cur) : null;
+      wr.hot = wr.moved ? findTarget(wr.from, wr.cur, { x: e.clientX, y: e.clientY }) : null;
+      requestRender();
+      return;
+    }
+    case 'wirepress': {
+      const wp = S.wirePress;
+      if (Math.hypot(e.clientX - wp.sx, e.clientY - wp.sy) <= 4) return;
+      S.selWire = null; updateSelTools();
+      const cur = toWorld(e.clientX, e.clientY);
+      S.wiring = { from: wp.from, origin: wp.origin, sx: wp.sx, sy: wp.sy, cur, hot: findTarget(wp.from, cur), moved: true };
+      S.wirePress = null;
+      S.mode = 'wire';
       requestRender();
       return;
     }
@@ -462,7 +499,7 @@ function onPointerMove(e) {
   }
   if (S.pending) {
     S.pending.cur = toWorld(e.clientX, e.clientY);
-    S.pending.hot = findTarget(S.pending.from, S.pending.cur);
+    S.pending.hot = findTarget(S.pending.from, S.pending.cur, { x: e.clientX, y: e.clientY });
     requestRender();
   }
 }
@@ -475,7 +512,7 @@ function onPointerUp(e) {
     const wr = S.wiring;
     S.wiring = null;
     if (wr.moved) {
-      const target = wr.hot || findTarget(wr.from, toWorld(e.clientX, e.clientY));
+      const target = wr.hot || findTarget(wr.from, toWorld(e.clientX, e.clientY), { x: e.clientX, y: e.clientY });
       if (target) connectPins(wr.from, target);
     } else {
       S.pending = { from: wr.from, cur: toWorld(e.clientX, e.clientY), hot: null };
@@ -483,6 +520,7 @@ function onPointerUp(e) {
     requestRender();
     return;
   }
+  if (mode === 'wirepress') { S.wirePress = null; return; }
   if (mode === 'drag') {
     const d = S.drag;
     S.drag = null;
@@ -512,7 +550,7 @@ function onPointerUp(e) {
 function onPointerCancel(e) {
   S.pointers.delete(e.pointerId);
   if (S.drag && S.drag.moved) commitChange(S.drag.before);
-  S.mode = null; S.drag = null; S.wiring = null; S.pan = null; S.box = null;
+  S.mode = null; S.drag = null; S.wiring = null; S.wirePress = null; S.pan = null; S.box = null;
   if (S.pointers.size < 2) S.pinch = null;
   board.classList.remove('panning');
   requestRender();
